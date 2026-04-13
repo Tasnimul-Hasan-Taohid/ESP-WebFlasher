@@ -227,3 +227,26 @@ Browser (Chrome/Edge)
 | Adafruit ESPTool | ❌ None | ✅ Yes | ❌ No | ❌ No |
 
 ---
+
+## Contributing
+
+Pull requests welcome. Areas to improve:
+- Compressed binary support (`.bin.gz`)
+- OTA update support
+- Saved flash configurations
+- Firefox support (via WebUSB fallback)
+- Partition table parser/viewer
+
+---
+
+## License
+
+MIT — free to use, modify, host, and distribute.
+
+---
+
+## Credits
+
+- [Espressif esptool](https://github.com/espressif/esptool) — ROM protocol reference
+- [Web Serial API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API) — browser serial access
+- [ESP8266/ESP32 Arduino Core](https://github.com/esp8266/Arduino) — firmware ecosystem
