@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP WebFlasher</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Background grid -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="app">
+
+    <!-- ── Header ── -->
+    <header class="header">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 36 36" fill="none">
+          <rect x="2" y="10" width="32" height="20" rx="3" stroke="currentColor" stroke-width="2"/>
+          <path d="M8 16h4M8 20h8M8 24h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <rect x="20" y="14" width="8" height="8" rx="1" fill="currentColor" opacity="0.3"/>
+          <circle cx="24" cy="18" r="2" fill="currentColor"/>
+          <path d="M12 6h12M15 3h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <span class="logo-text">ESP <strong>WebFlasher</strong></span>
+          <span class="logo-sub">Browser-based firmware uploader</span>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge">Web Serial API</span>
+        <span class="badge">No install needed</span>
+      </div>
+    </header>
+
+    <!-- ── Browser warning ── -->
+    <div class="browser-warning" id="browserWarning" style="display:none">
+      ⚠️ Your browser doesn't support the Web Serial API. Please use <strong>Chrome</strong> or <strong>Edge</strong> (version 89+) on desktop.
+    </div>
+
+    <main class="main">
+
+      <!-- ── Left panel: Config ── -->
+      <section class="panel panel-config">
+
+        <!-- Step 1: Board -->
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-body">
+            <h2 class="step-title">Select Board</h2>
+            <div class="board-grid" id="boardGrid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Port & Settings -->
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-body">
+            <h2 class="step-title">Port & Settings</h2>
+
+            <div class="field-row">
+              <label>Baud Rate</label>
+              <select id="baudRate">
+                <option value="115200" selected>115200 (recommended)</option>
+                <option value="921600">921600 (fast)</option>
+                <option value="460800">460800</option>
+                <option value="230400">230400</option>
+                <option value="74880">74880</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label>Flash Mode</label>
+              <select id="flashMode">
+                <option value="dio" selected>DIO (recommended)</option>
+                <option value="dout">DOUT</option>
+                <option value="qio">QIO</option>
+                <option value="qout">QOUT</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label>Flash Frequency</label>
+              <select id="flashFreq">
+                <option value="40m" selected>40 MHz</option>
+                <option value="80m">80 MHz</option>
+                <option value="20m">20 MHz</option>
+                <option value="26m">26 MHz</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label>Flash Size</label>
+              <select id="flashSize">
+                <option value="detect" selected>Auto Detect</option>
+                <option value="1MB">1 MB</option>
+                <option value="2MB">2 MB</option>
+                <option value="4MB">4 MB</option>
+                <option value="8MB">8 MB</option>
+                <option value="16MB">16 MB</option>
+              </select>
+            </div>
+
+            <div class="field-row">
+              <label>Flash Address</label>
+              <input type="text" id="flashAddr" value="0x0" placeholder="e.g. 0x0 or 0x1000" />
+            </div>
+
+            <div class="checkbox-row">
+              <label class="checkbox-label">
+                <input type="checkbox" id="eraseFlash" />
+                <span class="checkmark"></span>
+                Erase flash before writing
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Step 3: Firmware File -->
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-body">
+            <h2 class="step-title">Firmware File</h2>
+
+            <div class="dropzone" id="dropzone">
+              <input type="file" id="fileInput" accept=".bin" hidden />
+              <div class="dropzone-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <path d="M24 8v24M14 18l10-10 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 36h32" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <p class="dropzone-text">Drop <code>.bin</code> file here</p>
+              <p class="dropzone-sub">or <button class="link-btn" id="browseBtn">browse files</button></p>
+            </div>
+
+            <div class="file-info" id="fileInfo" style="display:none">
+              <div class="file-info-icon">📦</div>
+              <div class="file-info-details">
+                <span class="file-name" id="fileName"></span>
+                <span class="file-size" id="fileSize"></span>
+              </div>
+              <button class="clear-btn" id="clearFile" title="Remove file">✕</button>
+            </div>
+
+            <!-- Multi-file support -->
+            <div class="multi-files" id="multiFiles">
+              <button class="add-file-btn" id="addFileBtn">+ Add another binary (multi-part flash)</button>
+              <div id="extraFiles"></div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ── Right panel: Flash & Console ── -->
+      <section class="panel panel-flash">
+
+        <!-- Connect + Flash buttons -->
+        <div class="action-area">
+          <button class="btn btn-connect" id="connectBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            Connect Serial Port
+          </button>
+
+          <div class="port-info" id="portInfo" style="display:none">
+            <div class="port-dot"></div>
+            <span id="portLabel">Connected</span>
+            <button class="btn-sm" id="disconnectBtn">Disconnect</button>
+          </div>
+
+          <button class="btn btn-flash" id="flashBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Flash Firmware
+          </button>
+
+          <button class="btn btn-erase" id="eraseBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Erase Only
+          </button>
+
+          <button class="btn btn-reset" id="resetBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-4.98"/>
+            </svg>
+            Reset Device
+          </button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-area" id="progressArea" style="display:none">
+          <div class="progress-header">
+            <span class="progress-label" id="progressLabel">Flashing...</span>
+            <span class="progress-pct" id="progressPct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <div class="progress-meta" id="progressMeta"></div>
+        </div>
+
+        <!-- Serial Console -->
+        <div class="console-area">
+          <div class="console-header">
+            <span class="console-title">Serial Console</span>
+            <div class="console-controls">
+              <label class="checkbox-label small">
+                <input type="checkbox" id="autoScroll" checked />
+                <span class="checkmark"></span>
+                Auto-scroll
+              </label>
+              <select id="consoleBaud" title="Console baud rate">
+                <option value="115200" selected>115200</option>
+                <option value="9600">9600</option>
+                <option value="74880">74880</option>
+                <option value="921600">921600</option>
+              </select>
+              <button class="btn-sm" id="clearConsole">Clear</button>
+              <button class="btn-sm" id="copyConsole">Copy</button>
+            </div>
+          </div>
+
+          <div class="console-output" id="consoleOutput">
+            <div class="console-line dim">── ESP WebFlasher ready ──</div>
+            <div class="console-line dim">Supported: Chrome 89+ / Edge 89+ on Windows, macOS, Linux</div>
+            <div class="console-line dim">Connect a board and select a .bin file to begin.</div>
+          </div>
+
+          <!-- Console input -->
+          <div class="console-input-row">
+            <input type="text" id="consoleInput" placeholder="Send command..." disabled />
+            <select id="lineEnding">
+              <option value="\r\n">CRLF</option>
+              <option value="\n">LF</option>
+              <option value="\r">CR</option>
+              <option value="">None</option>
+            </select>
+            <button class="btn-sm send-btn" id="sendBtn" disabled>Send</button>
+          </div>
+        </div>
+
+        <!-- Device Info (shown after connect) -->
+        <div class="device-info" id="deviceInfo" style="display:none">
+          <h3 class="device-info-title">Device Info</h3>
+          <div class="device-info-grid" id="deviceInfoGrid"></div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- ── Footer ── -->
+    <footer class="footer">
+      <span>ESP WebFlasher — open source, browser-based firmware tool</span>
+      <span>Uses <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API" target="_blank">Web Serial API</a> + <a href="https://github.com/espressif/esptool" target="_blank">esptool protocol</a></span>
+    </footer>
+
+  </div>
+
+  <script src="boards.js"></script>
+  <script src="esptool.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
